@@ -5,14 +5,14 @@ import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 
 const leftMenuLinks = [
-  { label: "Download", href: "#download" },
-  { label: "Features", href: "#features" },
-  { label: "Rankings", href: "#rankings" },
-  { label: "News", href: "#news" },
-  { label: "FAQ", href: "#faq" },
-  { label: "Support Ticket", href: "#support" },
-  { label: "Server Rules", href: "#rules" },
-  { label: "Contact Us", href: "#contact" },
+  { label: "Download", href: "/downloads" },
+  { label: "Features", href: "/features" },
+  { label: "Rankings", href: "/rankings" },
+  { label: "News", href: "/" },
+  { label: "FAQ", href: "/faq" },
+  { label: "Support Ticket", href: "/contact-us" },
+  { label: "Server Rules", href: "/rules" },
+  { label: "Contact Us", href: "/contact-us" },
 ];
 
 const rightMenuLinks = [
@@ -20,9 +20,9 @@ const rightMenuLinks = [
   { label: "Facebook", href: "https://facebook.com/lycan", external: true },
   { label: "YouTube", href: "https://youtube.com/lycan", external: true },
   { label: "Forums", href: "#forums" },
-  { label: "Terms of Service", href: "#tos" },
-  { label: "Privacy Policy", href: "#privacy" },
-  { label: "Refund Policy", href: "#refund" },
+  { label: "Terms of Service", href: "/tos" },
+  { label: "Privacy Policy", href: "/tos" },
+  { label: "Refund Policy", href: "/tos" },
 ];
 
 const partnerLinks = [

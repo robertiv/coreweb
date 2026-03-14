@@ -1,4 +1,4 @@
-import { Navbar } from "@/components/navbar";
+import {Navbar} from "@/components/navbar";
 import { HeroSection } from "@/components/hero-section";
 import { ServerStatus } from "@/components/sidebar/server-status";
 import { LoginBox } from "@/components/sidebar/login-box";
@@ -6,7 +6,6 @@ import { FortressWar } from "@/components/sidebar/fortress-war";
 import { UniqueKills } from "@/components/sidebar/unique-kills";
 import { EventSchedule } from "@/components/sidebar/event-schedule";
 import { DiscordWidget } from "@/components/sidebar/discord-widget";
-//import { ServerFeatures } from "@/components/sidebar/server-features";
 import { MediaCarousel } from "@/components/media-carousel";
 import { DiscordNews } from "@/components/discord-news";
 import { TopPlayers } from "@/components/top-players";

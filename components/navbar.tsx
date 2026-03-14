@@ -4,18 +4,36 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
+import { usePathname } from "next/navigation";
+import checkSession from "@/lib/checkSession";
+import deleteSession from "@/lib/deleteSession";
+import { useRouter } from "next/navigation";
 
 const navLinks = [
-	{ href: "#home", label: "Home" },
-	{ href: "#downloads", label: "Download" },
-	{ href: "#ranking", label: "Rankings" },
-	{ href: "#free-silk", label: "Vote for Silk" },
-	{ href: "#buy-silk", label: "Buy Silk" },
+	{ href: "/", label: "Home" },
+	{ href: "/downloads", label: "Download" },
+	{ href: "/ranking", label: "Rankings" },
+	{ href: "/free-silk", label: "Free silk" },
+	{ href: "/buy-silk", label: "Buy Silk" },
 ];
 
 export function Navbar() {
+	const [hasToken, setHasToken] = useState(false);
 	const [isScrolled, setIsScrolled] = useState(false);
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+	const pathname = usePathname();
+	const router = useRouter();
+
+	const handleLogout = async () => {
+		const result = await deleteSession();		
+
+		console.log("Logout result:", result);
+		// Redirigir a la página de inicio después del logout
+		if(result.success) {
+			setHasToken(false);
+			router.push("/");
+		}
+	}
 
 	useEffect(() => {
 		const handleScroll = () => {
@@ -26,18 +44,25 @@ export function Navbar() {
 		return () => window.removeEventListener("scroll", handleScroll);
 	}, []);
 
+	useEffect(() => {
+		const checkSessionStatus = async () => {
+			const result = await checkSession();
+			setHasToken(result);
+		};
+		checkSessionStatus();
+	}, []);
+
 	return (
 		<header
 			className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-				isScrolled
-					? "bg-[var(--lycan-dark)]/95 shadow-lg backdrop-blur-md border-b border-[var(--border)]"
-					: "bg-transparent"
+				!isScrolled && pathname === "/"
+					? "bg-transparent"
+					: "bg-[var(--lycan-dark)]/95 shadow-lg backdrop-blur-md border-b border-[var(--border)]"
 			}`}
 		>
 			<nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
 				{/* Logo */}
 				<Link href="/" className="flex items-center gap-2">
-					
 					<Image
 						src="/images/name.png"
 						alt="Lycan"
@@ -61,24 +86,43 @@ export function Navbar() {
 				</div>
 
 				{/* Auth Buttons */}
-				<div
-					className={`hidden items-center gap-3 md:flex font-serif ${
-						isScrolled && "invisible"
-					}`}
-				>
-					<button
-						type="button"
-						className="rounded-md px-4 py-2 text-sm font-bold text-[var(--lycan-gold)] hover:bg-[var(--lycan-gold)]/10 transition-all "
+				{hasToken ? (
+					<div
+						className={`hidden items-center gap-3 md:flex font-serif`}
 					>
-						Login
-					</button>
-					<button
-						type="button"
-						className="rounded-md bg-gradient-to-r from-[var(--lycan-gold)] to-[var(--lycan-orange)] px-4 py-2 text-sm font-bold text-[var(--lycan-dark)] transition-all hover:scale-105"
+						<a
+							href="/dashboard"
+							className="cursor-pointer rounded-md bg-gradient-to-r from-[var(--lycan-gold)] to-[var(--lycan-orange)] px-4 py-2 text-sm font-bold text-[var(--lycan-dark)] transition-all hover:scale-105"
+						>
+							Your account
+						</a>
+						<button
+							className="cursor-pointer rounded-md px-4 py-2 text-sm font-bold text-[var(--lycan-gold)] hover:bg-[var(--lycan-gold)]/10 transition-all "
+							onClick={handleLogout}
+						>
+							Logout
+						</button>						
+					</div>
+				) : (
+					<div
+						className={`hidden items-center gap-3 md:flex font-serif ${
+							isScrolled && pathname === "/" && "invisible"
+						}`}
 					>
-						Register
-					</button>
-				</div>
+						<a
+							href="/account"
+							className="cursor-pointer rounded-md px-4 py-2 text-sm font-bold text-[var(--lycan-gold)] hover:bg-[var(--lycan-gold)]/10 transition-all "
+						>
+							Login
+						</a>
+						<a
+							href="/account?mod=register"
+							className="cursor-pointer rounded-md bg-gradient-to-r from-[var(--lycan-gold)] to-[var(--lycan-orange)] px-4 py-2 text-sm font-bold text-[var(--lycan-dark)] transition-all hover:scale-105"
+						>
+							Register
+						</a>
+					</div>
+				)}
 
 				{/* Mobile Menu Button */}
 				<button
@@ -106,18 +150,18 @@ export function Navbar() {
 							</Link>
 						))}
 						<div className="mt-4 flex gap-2 border-t border-[var(--border)] pt-4 font-serif">
-							<button
-								type="button"
-								className="cursor-pointer flex-1 rounded-md border border-[var(--lycan-gold)] py-2 text-[var(--lycan-gold)] font-bold"
+							<a
+								href="/account"
+								className="text-center cursor-pointer flex-1 rounded-md border border-[var(--lycan-gold)] py-2 text-[var(--lycan-gold)] font-bold"
 							>
 								Login
-							</button>
-							<button
-								type="button"
-								className="cursor-pointer flex-1 rounded-md bg-gradient-to-r from-[var(--lycan-gold)] to-[var(--lycan-orange)] py-2 font-bold text-[var(--lycan-dark)]"
+							</a>
+							<a
+								href="/account?mod=register"
+								className="text-center cursor-pointer flex-1 rounded-md bg-gradient-to-r from-[var(--lycan-gold)] to-[var(--lycan-orange)] py-2 font-bold text-[var(--lycan-dark)]"
 							>
 								Register
-							</button>
+							</a>
 						</div>
 					</div>
 				</div>

@@ -10,6 +10,7 @@ interface LycanBoxProps {
   className?: string;
   headerClassName?: string;
   contentClassName?: string;
+  clipOverflow?: boolean;
 }
 
 export function LycanBox({
@@ -19,9 +20,16 @@ export function LycanBox({
   className,
   headerClassName,
   contentClassName,
+  clipOverflow = true,
 }: LycanBoxProps) {
   return (
-    <div className={cn("lycan-box rounded-lg overflow-hidden", className)}>
+    <div
+      className={cn(
+        "lycan-box rounded-lg",
+        clipOverflow ? "lycan-box--clip" : "overflow-visible",
+        className
+      )}
+    >
       {/* Ornamental Header */}
       <div
         className={cn(
