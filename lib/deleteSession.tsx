@@ -1,27 +1,21 @@
-import React from "react";
+"use server";
+
+import { cookies } from "next/headers";
 
 export default async function deleteSession() {
 	try {
-      
-      const response = await fetch("/api/logout", {
-        method: "POST",
-        credentials: "include", // MUY IMPORTANTE
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+		const cookieStore = await cookies();
+		cookieStore.delete("token");
+		cookieStore.delete("session_user");
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        return data.message || "Error al cerrar sesión";
-      }
-
-      return data || "Sesión cerrada correctamente";
-      // Redirigir después del logout
-      //router.push("/login");
-      //router.refresh(); // opcional pero recomendado
-    } catch (error) {
-      return error || "Error al cerrar sesión";
-    }
+		return {
+			success: true,
+			message: "Session closed successfully",
+		};
+	} catch {
+		return {
+			success: false,
+			message: "Unable to logout right now. Please try again.",
+		};
+	}
 }

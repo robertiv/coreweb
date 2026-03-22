@@ -1,654 +1,348 @@
-"use client";
-
-import { LycanBox } from "@/components/ui/lycan-box";
-import { Clock, CrossIcon, Brain, ShieldPlus } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
+import { Navbar } from "@/components/navbar";
+import { LycanBox } from "@/components/ui/lycan-box";
+import {
+	getRankingByTab,
+	type RankingTab,
+	rankingTabs,
+	RANKING_CACHE_SECONDS,
+} from "@/lib/rankings";
+import { Brain, Clock, ShieldPlus } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import { ReactNode } from "react";
 
-export default function RankingPage() {
-	const [activeTab, setActiveTab] = useState<TabType>("players");
-	const [data, setData] = useState<any[]>([]);
-	const [rankingData, setRankingData] = useState<
-		Partial<Record<TabType, any[]>>
-	>({});
+type RankingColumn = {
+	key: string;
+	label: string;
+	render?: (value: unknown) => ReactNode;
+};
 
-	const tabss = [
-		"players",
-		"guilds",
-		"traders",
-		"hunters",
-		"thieves",
-		"honor",
-		"uniques",
-		"pvp-match",
-	] as const;
-	type TabType = (typeof tabss)[number];
+const TAB_LABELS: Record<RankingTab, string> = {
+	players: "Players",
+	guilds: "Guilds",
+	traders: "Traders",
+	hunters: "Hunters",
+	thieves: "Thieves",
+	honor: "Honor",
+	uniques: "Uniques",
+	"pvp-match": "PVP Match",
+};
 
-	type RankingConfig<T> = {
-		label: string;
-		endpoint: string;
-		columns: {
-			key: keyof T;
-			label: string;
-			render?: (value: any, row: T) => React.ReactNode;
-		}[];
-	};
+function normalizeTab(value: string | string[] | undefined): RankingTab {
+	const selected = Array.isArray(value) ? value[0] : value;
+	if (!selected) {
+		return "players";
+	}
 
-	const RANKINGS: Record<TabType, RankingConfig<any>> = {
-		players: {
-			label: "Players",
-			endpoint: "/api/rankings/players",
-			columns: [
+	if ((rankingTabs as readonly string[]).includes(selected)) {
+		return selected as RankingTab;
+	}
+
+	return "players";
+}
+
+function renderRaceStats(value: unknown) {
+	const text = String(value ?? "").toLowerCase();
+	const isChinese = text.includes("chinese");
+	const isInt = text.includes("int");
+
+	return (
+		<div className="flex w-full items-center justify-center gap-3">
+			<div className="rounded-full bg-red-500/20 p-0 inline">
+				<Image
+					src={isChinese ? "/images/chinese.png" : "/images/european.png"}
+					alt={text || "race"}
+					width={32}
+					height={32}
+					className="mx-auto inline"
+				/>
+			</div>
+			{isInt ? (
+				<div className="rounded-full bg-blue-500/20 p-1 inline">
+					<Brain className="h-6 w-6 inline text-blue-600 p-1" />
+				</div>
+			) : (
+				<div className="rounded-full bg-red-500/20 p-1 inline">
+					<ShieldPlus className="h-6 w-6 inline text-red-600 p-1" />
+				</div>
+			)}
+		</div>
+	);
+}
+
+function renderJobType(value: unknown) {
+	const jobType = Number(value);
+	if (jobType > 0) {
+		return (
+			<Image
+				src={`/images/jobs/${jobType}.png`}
+				alt={`Job ${jobType}`}
+				width={32}
+				height={32}
+				className="mx-auto"
+			/>
+		);
+	}
+
+	return "<none>";
+}
+
+function renderLastOnline(value: unknown) {
+	if (!value) {
+		return "-";
+	}
+
+	const date = new Date(String(value));
+	if (Number.isNaN(date.getTime())) {
+		return "-";
+	}
+
+	return date.toLocaleString();
+}
+
+function getColumnsForTab(tab: RankingTab): RankingColumn[] {
+	switch (tab) {
+		case "players":
+			return [
 				{ key: "RankNo", label: "Rank" },
 				{
 					key: "CharName16",
 					label: "Name",
 					render: (value) => (
-						<a
-							className="hover:text-[var(--lycan-gold)] transition duration-300 ease-in-out"
+						<Link
+							className="transition duration-300 ease-in-out hover:text-[var(--lycan-gold)]"
 							href={`/chars/${value}`}
 						>
-							{value}
-						</a>
+							{String(value ?? "")}
+						</Link>
 					),
 				},
 				{
 					key: "guildname",
 					label: "Guild",
-					render: (value) =>
-						value === "<none>" ? (
-							"none"
-						) : (
-							<a
-								className="hover:text-[var(--lycan-gold)] transition duration-300 ease-in-out"
-								href={`/guilds/${value}`}
-							>
-								{value}
-							</a>
-						),
-				},
-				{
-					key: "class",
-					label: "Race / Stats",
-					render: (value) => (
-						<div className="flex items-center gap-3 w-full justify-center">
-							{value.includes("chinese") ? (
-								<div className="rounded-full bg-red-500/20 p-0 inline">
-									<Image
-										src={`/images/chinese.png`}
-										alt={value}
-										width={32}
-										height={32}
-										className="mx-auto inline"
-									/>
-								</div>
-							) : (
-								<div className="rounded-full bg-red-500/20 p-0 inline">
-									<Image
-										src={`/images/european.png`}
-										alt={value}
-										width={32}
-										height={32}
-										className="mx-auto inline"
-									/>
-								</div>
-							)}
-							{value.includes("int") ? (
-								<div className="rounded-full bg-blue-500/20 p-1 inline">
-									<Brain className="h-6 w-6 inline text-blue-600 p-1" />
-								</div>
-							) : (
-								<div className="rounded-full bg-red-500/20 p-1 inline">
-									<ShieldPlus className="h-6 w-6 inline text-red-600 p-1" />
-								</div>
-							)}
-						</div>
-					),
-				},
-				{
-					key: "jobType",
-					label: "Job",
-					render: (value) =>
-						value > 0 ? (
-							<Image
-								src={`/images/jobs/${value}.png`}
-								alt={value}
-								width={32}
-								height={32}
-								className="mx-auto"
-							/>
-						) : (
-							"<none>"
-						),
-				},
-				{ key: "ItemPoints", label: "Item Points" },
-				{
-					key: "LastLogout",
-					label: "Last Online",
 					render: (value) => {
-						const date = new Date(value);
-						return date.toLocaleString();
+						const guild = String(value ?? "");
+						if (!guild || guild === "<none>") {
+							return "none";
+						}
+
+						return (
+							<Link
+								className="transition duration-300 ease-in-out hover:text-[var(--lycan-gold)]"
+								href={`/guilds/${guild}`}
+							>
+								{guild}
+							</Link>
+						);
 					},
 				},
-			],
-		},
-
-		guilds: {
-			label: "Guilds",
-			endpoint: "/api/rankings/guilds",
-			columns: [
+				{ key: "class", label: "Race / Stats", render: renderRaceStats },
+				{ key: "jobType", label: "Job", render: renderJobType },
+				{ key: "ItemPoints", label: "Item Points" },
+				{ key: "LastLogout", label: "Last Online", render: renderLastOnline },
+			];
+		case "guilds":
+			return [
 				{ key: "rank", label: "Rank" },
 				{
 					key: "name",
 					label: "Guild Name",
 					render: (value) => (
-						<a
-							className="hover:text-[var(--lycan-gold)] transition duration-300 ease-in-out"
+						<Link
+							className="transition duration-300 ease-in-out hover:text-[var(--lycan-gold)]"
 							href={`/guilds/${value}`}
 						>
-							{value}
-						</a>
+							{String(value ?? "")}
+						</Link>
 					),
 				},
 				{ key: "members", label: "Members" },
 				{ key: "fortress", label: "Fortress Won" },
 				{ key: "itempoints", label: "Item Points" },
-			],
-		},
-		traders: {
-			label: "Traders",
-			endpoint: "/api/rankings/jobs/1",
-			columns: [
+			];
+		case "traders":
+		case "hunters":
+		case "thieves":
+			return [
 				{ key: "rank", label: "Rank" },
 				{
 					key: "name",
 					label: "Name",
 					render: (value) => (
-						<a
-							className="hover:text-[var(--lycan-gold)] transition duration-300 ease-in-out"
+						<Link
+							className="transition duration-300 ease-in-out hover:text-[var(--lycan-gold)]"
 							href={`/chars/${value}`}
 						>
-							{value}
-						</a>
+							{String(value ?? "")}
+						</Link>
 					),
 				},
-				{
-					key: "class",
-					label: "Race / Stats",
-					render: (value) => (
-						<div className="flex items-center gap-3 w-full justify-center">
-							{value.includes("chinese") ? (
-								<div className="rounded-full bg-red-500/20 p-0 inline">
-									<Image
-										src={`/images/chinese.png`}
-										alt={value}
-										width={32}
-										height={32}
-										className="mx-auto inline"
-									/>
-								</div>
-							) : (
-								<div className="rounded-full bg-red-500/20 p-0 inline">
-									<Image
-										src={`/images/european.png`}
-										alt={value}
-										width={32}
-										height={32}
-										className="mx-auto inline"
-									/>
-								</div>
-							)}
-							{value.includes("int") ? (
-								<div className="rounded-full bg-blue-500/20 p-1 inline">
-									<Brain className="h-6 w-6 inline text-blue-600 p-1" />
-								</div>
-							) : (
-								<div className="rounded-full bg-red-500/20 p-1 inline">
-									<ShieldPlus className="h-6 w-6 inline text-red-600 p-1" />
-								</div>
-							)}
-						</div>
-					),
-				},
+				{ key: "class", label: "Race / Stats", render: renderRaceStats },
 				{ key: "guild", label: "Guild" },
 				{ key: "points", label: "Points" },
-
-				// ...add relevant columns...
-			],
-		},
-		hunters: {
-			label: "Hunters",
-			endpoint: "/api/rankings/jobs/3",
-			columns: [
-				{ key: "rank", label: "Rank" },
-				{
-					key: "name",
-					label: "Name",
-					render: (value) => (
-						<a
-							className="hover:text-[var(--lycan-gold)] transition duration-300 ease-in-out"
-							href={`/chars/${value}`}
-						>
-							{value}
-						</a>
-					),
-				},
-				{
-					key: "class",
-					label: "Race / Stats",
-					render: (value) => (
-						<div className="flex items-center gap-3 w-full justify-center">
-							{value.includes("chinese") ? (
-								<div className="rounded-full bg-red-500/20 p-0 inline">
-									<Image
-										src={`/images/chinese.png`}
-										alt={value}
-										width={32}
-										height={32}
-										className="mx-auto inline"
-									/>
-								</div>
-							) : (
-								<div className="rounded-full bg-red-500/20 p-0 inline">
-									<Image
-										src={`/images/european.png`}
-										alt={value}
-										width={32}
-										height={32}
-										className="mx-auto inline"
-									/>
-								</div>
-							)}
-							{value.includes("int") ? (
-								<div className="rounded-full bg-blue-500/20 p-1 inline">
-									<Brain className="h-6 w-6 inline text-blue-600 p-1" />
-								</div>
-							) : (
-								<div className="rounded-full bg-red-500/20 p-1 inline">
-									<ShieldPlus className="h-6 w-6 inline text-red-600 p-1" />
-								</div>
-							)}
-						</div>
-					),
-				},
-				{ key: "guild", label: "Guild" },
-				{ key: "points", label: "Points" },
-
-				// ...add relevant columns...
-			],
-		},
-		thieves: {
-			label: "Thieves",
-			endpoint: "/api/rankings/jobs/2",
-			columns: [
-				{ key: "rank", label: "Rank" },
-				{
-					key: "name",
-					label: "Name",
-					render: (value) => (
-						<a
-							className="hover:text-[var(--lycan-gold)] transition duration-300 ease-in-out"
-							href={`/chars/${value}`}
-						>
-							{value}
-						</a>
-					),
-				},
-				{
-					key: "class",
-					label: "Race / Stats",
-					render: (value) => (
-						<div className="flex items-center gap-3 w-full justify-center">
-							{value.includes("chinese") ? (
-								<div className="rounded-full bg-red-500/20 p-0 inline">
-									<Image
-										src={`/images/chinese.png`}
-										alt={value}
-										width={32}
-										height={32}
-										className="mx-auto inline"
-									/>
-								</div>
-							) : (
-								<div className="rounded-full bg-red-500/20 p-0 inline">
-									<Image
-										src={`/images/european.png`}
-										alt={value}
-										width={32}
-										height={32}
-										className="mx-auto inline"
-									/>
-								</div>
-							)}
-							{value.includes("int") ? (
-								<div className="rounded-full bg-blue-500/20 p-1 inline">
-									<Brain className="h-6 w-6 inline text-blue-600 p-1" />
-								</div>
-							) : (
-								<div className="rounded-full bg-red-500/20 p-1 inline">
-									<ShieldPlus className="h-6 w-6 inline text-red-600 p-1" />
-								</div>
-							)}
-						</div>
-					),
-				},
-				{ key: "guild", label: "Guild" },
-				{ key: "points", label: "Points" },
-
-				// ...add relevant columns...
-			],
-		},
-		uniques: {
-			label: "Uniques",
-			endpoint: "/api/rankings/uniques",
-			columns: [
+			];
+		case "honor":
+			return [
 				{ key: "RankNo", label: "Rank" },
 				{
 					key: "charname",
 					label: "Name",
 					render: (value) => (
-						<a
-							className="hover:text-[var(--lycan-gold)] transition duration-300 ease-in-out"
+						<Link
+							className="transition duration-300 ease-in-out hover:text-[var(--lycan-gold)]"
 							href={`/chars/${value}`}
 						>
-							{value}
-						</a>
+							{String(value ?? "")}
+						</Link>
+					),
+				},
+				{ key: "class", label: "Race / Stats", render: renderRaceStats },
+				{ key: "jobType", label: "Job", render: renderJobType },
+				{ key: "honorpoints", label: "Honor Points" },
+				{ key: "LastLogout", label: "Last Online", render: renderLastOnline },
+			];
+		case "uniques":
+			return [
+				{ key: "RankNo", label: "Rank" },
+				{
+					key: "charname",
+					label: "Name",
+					render: (value) => (
+						<Link
+							className="transition duration-300 ease-in-out hover:text-[var(--lycan-gold)]"
+							href={`/chars/${value}`}
+						>
+							{String(value ?? "")}
+						</Link>
 					),
 				},
 				{
 					key: "guildname",
 					label: "Guild",
-					render: (value) => (
-						<a
-							className="hover:text-[var(--lycan-gold)] transition duration-300 ease-in-out"
-							href={`/guilds/${value}`}
-						>
-							{value}
-						</a>
-					),
+					render: (value) => {
+						const guild = String(value ?? "");
+						if (!guild || guild === "<none>") {
+							return "none";
+						}
+
+						return (
+							<Link
+								className="transition duration-300 ease-in-out hover:text-[var(--lycan-gold)]"
+								href={`/guilds/${guild}`}
+							>
+								{guild}
+							</Link>
+						);
+					},
 				},
-				{
-					key: "class",
-					label: "Race / Stats",
-					render: (value) => (
-						<div className="flex items-center gap-3 w-full justify-center">
-							{value.includes("chinese") ? (
-								<div className="rounded-full bg-red-500/20 p-0 inline">
-									<Image
-										src={`/images/chinese.png`}
-										alt={value}
-										width={32}
-										height={32}
-										className="mx-auto inline"
-									/>
-								</div>
-							) : (
-								<div className="rounded-full bg-red-500/20 p-0 inline">
-									<Image
-										src={`/images/european.png`}
-										alt={value}
-										width={32}
-										height={32}
-										className="mx-auto inline"
-									/>
-								</div>
-							)}
-							{value.includes("int") ? (
-								<div className="rounded-full bg-blue-500/20 p-1 inline">
-									<Brain className="h-6 w-6 inline text-blue-600 p-1" />
-								</div>
-							) : (
-								<div className="rounded-full bg-red-500/20 p-1 inline">
-									<ShieldPlus className="h-6 w-6 inline text-red-600 p-1" />
-								</div>
-							)}
-						</div>
-					),
-				},
-				{
-					key: "jobType",
-					label: "Job",
-					render: (value) =>
-						value > 0 ? (
-							<Image
-								src={`/images/jobs/${value}.png`}
-								alt={value}
-								width={32}
-								height={32}
-								className="mx-auto"
-							/>
-						) : (
-							"<none>"
-						),
-				},
+				{ key: "class", label: "Race / Stats", render: renderRaceStats },
+				{ key: "jobType", label: "Job", render: renderJobType },
 				{ key: "uniquepoints", label: "Unique Points" },
-				{
-					key: "LastLogout",
-					label: "Last Online",
-					render: (value) => {
-						const date = new Date(value);
-						return date.toLocaleString();
-					},
-				},
-			],
-		},
-		honor: {
-			label: "Honor",
-			endpoint: "/api/rankings/honor",
-			columns: [
-				{ key: "RankNo", label: "Rank" },
-				{
-					key: "charname",
-					label: "Name",
-					render: (value) => (
-						<a
-							className="hover:text-[var(--lycan-gold)] transition duration-300 ease-in-out"
-							href={`/chars/${value}`}
-						>
-							{value}
-						</a>
-					),
-				},
-				{
-					key: "class",
-					label: "Race / Stats",
-					render: (value) => (
-						<div className="flex items-center gap-3 w-full justify-center">
-							{value.includes("chinese") ? (
-								<div className="rounded-full bg-red-500/20 p-0 inline">
-									<Image
-										src={`/images/chinese.png`}
-										alt={value}
-										width={32}
-										height={32}
-										className="mx-auto inline"
-									/>
-								</div>
-							) : (
-								<div className="rounded-full bg-red-500/20 p-0 inline">
-									<Image
-										src={`/images/european.png`}
-										alt={value}
-										width={32}
-										height={32}
-										className="mx-auto inline"
-									/>
-								</div>
-							)}
-							{value.includes("int") ? (
-								<div className="rounded-full bg-blue-500/20 p-1 inline">
-									<Brain className="h-6 w-6 inline text-blue-600 p-1" />
-								</div>
-							) : (
-								<div className="rounded-full bg-red-500/20 p-1 inline">
-									<ShieldPlus className="h-6 w-6 inline text-red-600 p-1" />
-								</div>
-							)}
-						</div>
-					),
-				},
-				{
-					key: "jobType",
-					label: "Job",
-					render: (value) =>
-						value > 0 ? (
-							<Image
-								src={`/images/jobs/${value}.png`}
-								alt={value}
-								width={32}
-								height={32}
-								className="mx-auto"
-							/>
-						) : (
-							"<none>"
-						),
-				},
-				{ key: "honorpoints", label: "Honor Points" },
-				{
-					key: "LastLogout",
-					label: "Last Online",
-					render: (value) => {
-						const date = new Date(value);
-						return date.toLocaleString();
-					},
-				},
-			],
-		},
-		"pvp-match": {
-			label: "Traders",
-			endpoint: "/api/rankings/traders",
-			columns: [
+				{ key: "LastLogout", label: "Last Online", render: renderLastOnline },
+			];
+		case "pvp-match":
+			return [
 				{ key: "rank", label: "Rank" },
 				{ key: "name", label: "Name" },
-				// ...add relevant columns...
-			],
-		},
-	};
-
-	function RankingTable<T>({
-		config,
-		data,
-	}: {
-		config: RankingConfig<T>;
-		data: T[];
-	}) {
-		return (
-			<table className="min-w-full table-auto">
-				<thead>
-					<tr className="border-b border-[var(--border)] text-center">
-						{config.columns.map((col) => (
-							<th
-								key={String(col.key)}
-								className="px-4 py-3 font-serif text-sm font-bold text-[var(--lycan-gold)]"
-							>
-								{col.label}
-							</th>
-						))}
-					</tr>
-				</thead>
-
-				<tbody>
-					{data.map((row, index) => (
-						<tr
-							key={index}
-							className={
-								index % 2 === 0
-									? "bg-[var(--lycan-card-hover)]/30"
-									: ""
-							}
-						>
-							{config.columns.map((col) => (
-								<td
-									key={String(col.key)}
-									className="px-4 py-3 text-center"
-								>
-									{col.render
-										? col.render(row[col.key], row)
-										: String(row[col.key])}
-								</td>
-							))}
-						</tr>
-					))}
-				</tbody>
-			</table>
-		);
+				{ key: "score", label: "Score" },
+			];
+		default:
+			return [];
 	}
+}
 
-	useEffect(() => {
-		if (rankingData[activeTab]) return;
+type RankingPageProps = {
+	searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
 
-		fetch(RANKINGS[activeTab].endpoint)
-			.then((res) => res.json())
-			.then((result) => {
-				setRankingData((prev) => ({
-					...prev,
-					[activeTab]: result ?? [],
-				}));
-			});
-	}, [activeTab]);
-
-	const tabs = [
-		"players",
-		"guilds",
-		"traders",
-		"hunters",
-		"thieves",
-		"honor",
-		"uniques",
-		"pvp-match",
-	];
+export default async function RankingPage({ searchParams }: RankingPageProps) {
+	const resolvedSearchParams = searchParams ? await searchParams : {};
+	const activeTab = normalizeTab(resolvedSearchParams.tab);
+	const data = await getRankingByTab(activeTab);
+	const columns = getColumnsForTab(activeTab);
 
 	return (
-		<div className="flex min-h-screen flex-col relative">
-			{/* Background Image with Overlay */}
+		<div className="relative flex min-h-screen flex-col">
 			<div
-				className="fixed inset-0 bg-cover bg-center bg-no-repeat z-0"
+				className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
 				style={{ backgroundImage: "url('/images/trsro_bg1.png')" }}
 			/>
-			<div className="fixed inset-0 bg-black/70 z-10" />
+			<div className="fixed inset-0 z-10 bg-black/70" />
 
 			<div className="relative z-20 flex min-h-screen flex-col bg-transparent">
 				<Navbar />
 				<main className="pt-16">
-					<section className="max-w-7xl mx-auto px-4 py-8">
-						<div className="flex flex-col items-center text-center pb-8">
+					<section className="mx-auto max-w-7xl px-4 py-8">
+						<div className="flex flex-col items-center pb-8 text-center">
 							<h1 className="font-serif text-4xl font-bold text-[var(--foreground)] md:text-5xl">
 								Lycan Rankings
 							</h1>
 							<p className="mt-4 max-w-2xl text-lg text-[var(--muted-foreground)]">
-								Check out highscores and players stats!
+								Check out highscores and players stats. Rank updates every {RANKING_CACHE_SECONDS / 60} minutes.
 							</p>
 						</div>
-						<LycanBox
-							title="Server Rankings"
-							icon={<Clock className="h-4 w-4" />}
-						>
-							<div className="flex flex-wrap gap-2 justify-center mb-6">
-								{tabs.map((tab) => (
-									<button
+
+						<LycanBox title="Server Rankings" icon={<Clock className="h-4 w-4" />}>
+							<div className="mb-6 flex flex-wrap justify-center gap-2">
+								{rankingTabs.map((tab) => (
+									<Link
 										key={tab}
-										type="button"
-										onClick={() =>
-											setActiveTab(
-												tab.toString() as TabType,
-											)
-										}
-										className={`flex items-center gap-2 px-4 cursor-pointer py-3 font-serif text-sm font-bold text-[var(--lycan-gold)] transition-colors ${
+										href={`/ranking?tab=${tab}`}
+										className={`flex items-center gap-2 px-4 py-3 font-serif text-sm font-bold transition-colors ${
 											activeTab === tab
 												? "border-b-2 border-[var(--lycan-gold)] text-[var(--lycan-gold)]"
 												: "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
 										}`}
 									>
-										{tab}
-									</button>
+										{TAB_LABELS[tab]}
+									</Link>
 								))}
 							</div>
-							<RankingTable
-								config={RANKINGS[activeTab]}
-								data={rankingData[activeTab] ?? []}
-							/>
+
+							<div className="overflow-x-auto">
+								<table className="min-w-full table-auto">
+									<thead>
+										<tr className="border-b border-[var(--border)] text-center">
+											{columns.map((col) => (
+												<th
+													key={col.key}
+													className="px-4 py-3 font-serif text-sm font-bold text-[var(--lycan-gold)]"
+												>
+													{col.label}
+												</th>
+											))}
+										</tr>
+									</thead>
+									<tbody>
+										{data.length > 0 ? (
+											data.map((row: Record<string, unknown>, index: number) => (
+												<tr
+													key={`${activeTab}-${index}`}
+													className={index % 2 === 0 ? "bg-[var(--lycan-card-hover)]/30" : ""}
+												>
+													{columns.map((col) => (
+														<td key={col.key} className="px-4 py-3 text-center">
+															{col.render
+																? col.render(row[col.key])
+																: String(row[col.key] ?? "-")}
+														</td>
+													))}
+												</tr>
+											))
+										) : (
+											<tr>
+												<td
+													colSpan={Math.max(columns.length, 1)}
+													className="px-4 py-8 text-center text-[var(--muted-foreground)]"
+												>
+													No ranking data available for this tab yet.
+												</td>
+											</tr>
+										)}
+									</tbody>
+								</table>
+							</div>
 						</LycanBox>
 					</section>
 				</main>

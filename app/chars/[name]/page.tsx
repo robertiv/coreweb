@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import CharClient from "./CharClient";
+import { getCharacterDetailsByName } from "@/lib/character-details";
 
 export default async function Page({
 	params,
@@ -7,18 +8,21 @@ export default async function Page({
 	params: Promise<{ name: string }>;
 }) {
 	const { name } = await params;
-	const res = await fetch(
-		`${process.env.NEXT_PUBLIC_APP_URL}/api/chars/${name}`,
-		{
-			cache: "no-store",
-		},
-	);
+	let data;
 
-	if (!res.ok) {		
+	try {
+		data = await getCharacterDetailsByName(name);
+	} catch (error) {
+		if (error instanceof Error && error.message === "INVALID_CHARACTER_NAME") {
+			notFound();
+		}
+
+		throw error;
+	}
+
+	if (!data) {
 		notFound();
 	}
 
-	const data = await res.json();
-	//console.log(data);
 	return <CharClient params={data} />;
 }

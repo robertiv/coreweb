@@ -1,51 +1,63 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Eye, EyeOff, LogIn, UserPlus, User, Gift, Star } from "lucide-react";
 import { LycanBox } from "@/components/ui/lycan-box";
-import loginUser from "@/lib/loginUser";
-import { useRouter } from "next/navigation";
-import checkSession from "@/lib/checkSession";
-import { getUserFromToken } from "@/lib/auth";
+import { loginAction, type AccountActionState } from "@/app/account/actions";
+import { AUTH_STATE_CHANGED_EVENT } from "@/lib/auth-events";
+import { getClientSession } from "@/lib/checkSession";
 
 export function LoginBox() {
+	const initialActionState: AccountActionState = {
+		error: "",
+		success: "",
+	};
+
 	const [hasToken, setHasToken] = useState(false);
+	const [accountName, setAccountName] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
 	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
-	const [error, setError] = useState("");
-	const router = useRouter();
+	const [loginState, loginFormAction] = useActionState(
+		loginAction,
+		initialActionState,
+	);
 
-	//// preparar el loginbox y hacer que el login funcione con la api route de /api/login, que a su vez se encargará de hacer la petición al backend y setear la cookie con el token
-	// ademas desaparecer el form cuando el token sea true (ya hay un endpoint de /api/session para checkear esto) y mostrar un mensaje de bienvenida al usuario con su username, ademas de un botón para ir al dashboard y otro para hacer logout (que borrará la cookie y refrescará la página)
-	// diseñar algun tipo de info para mostrar cuando token sea true en lugar del form
-
-	const handleLogin = async (e: React.FormEvent) => {
-		e.preventDefault();
-		setError(""); // restart state.
-
-		const loginResult = await loginUser({
-			userId: username,
-			password: password,
-		});
-
-		if (loginResult.error) {
-			setError(loginResult.error);
-			return;
-		}
-
-		if (loginResult.success) {
-			router.push("/dashboard");
-		}
-	};
+	// TODO: Replace hardcoded account summary with real user data when authenticated.
 
 	useEffect(() => {
-		const checkSessionStatus = async () => {
-			const result = await checkSession();
-			setHasToken(result);
+		const syncSessionStatus = () => {
+			const session = getClientSession();
+			setHasToken(session.authenticated);
+			setAccountName(session.userId);
 		};
-		checkSessionStatus();
+
+		const handleAuthStateChanged = (event: Event) => {
+			const authEvent = event as CustomEvent<{ authenticated?: boolean }>;
+			const authenticated = Boolean(authEvent.detail?.authenticated);
+			setHasToken(authenticated);
+
+			if (!authenticated) {
+				setAccountName("");
+				return;
+			}
+
+			syncSessionStatus();
+		};
+
+		syncSessionStatus();
+		window.addEventListener(
+			AUTH_STATE_CHANGED_EVENT,
+			handleAuthStateChanged,
+		);
+
+		return () => {
+			window.removeEventListener(
+				AUTH_STATE_CHANGED_EVENT,
+				handleAuthStateChanged,
+			);
+		};
 	}, []);
 
 	return (
@@ -59,7 +71,7 @@ export function LoginBox() {
 					<h1 className="p-4 font-serif text-sm font-bold text-[var(--foreground)] md:text-sm">
 						Welcome back{" "}
 						<span className="text-lg text-[var(--lycan-gold)]">
-							kekox!
+							{accountName || "player"}!
 						</span>
 					</h1>
 					<div className="space-y-1 font-serif">
@@ -119,22 +131,24 @@ export function LoginBox() {
 				</>
 			) : (
 				<>
-					{error && (
+					{loginState.error && (
 						<div className="m-4 rounded-lg border border-[var(--lycan-gold)]/30 bg-[var(--lycan-gold)]/5 p-3">
 							<p className="text-sm text-[var(--muted-foreground)]">
 								<span className="font-semibold text-[#a80000]">
 									Error:
 								</span>{" "}
-								{error}
+								{loginState.error}
 							</p>
 						</div>
 					)}
 
-					<form onSubmit={handleLogin} className="space-y-3 p-4">
+					<form action={loginFormAction} className="space-y-3 p-4">
+						<input type="hidden" name="from" value="/dashboard" />
 						{/* Username */}
 						<div>
 							<input
 								type="text"
+								name="username"
 								placeholder="Username"
 								value={username}
 								onChange={(e) => setUsername(e.target.value)}
@@ -146,6 +160,7 @@ export function LoginBox() {
 						<div className="relative">
 							<input
 								type={showPassword ? "text" : "password"}
+								name="password"
 								placeholder="Password"
 								value={password}
 								onChange={(e) => setPassword(e.target.value)}

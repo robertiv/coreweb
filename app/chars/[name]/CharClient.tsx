@@ -991,7 +991,7 @@ export default function CharacterPage({ params }: { params: CharResponse }) {
 										PVP Kills
 									</p>
 									<p className="font-serif text-4xl font-bold text-[var(--foreground)]">
-										1{character.PvPCount}9
+										{character.PvPCount}
 									</p>
 								</div>
 								<div className="rounded-full bg-red-500/10 p-4">
@@ -1009,7 +1009,7 @@ export default function CharacterPage({ params }: { params: CharResponse }) {
 										Job Kills
 									</p>
 									<p className="font-serif text-4xl font-bold text-[var(--foreground)]">
-										3{character.JobKillsCount}7
+										{character.JobKillsCount}
 									</p>
 								</div>
 								<div className="rounded-full bg-blue-500/10 p-4">
@@ -1027,7 +1027,7 @@ export default function CharacterPage({ params }: { params: CharResponse }) {
 										Unique Kills
 									</p>
 									<p className="font-serif text-4xl font-bold text-[var(--foreground)]">
-										12{character.UniqueKillsCount}21
+										{character.UniqueKillsCount}
 									</p>
 								</div>
 								<div className="rounded-full bg-[var(--lycan-gold)]/10 p-4">

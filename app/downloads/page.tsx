@@ -1,9 +1,5 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import {
 	Download,
-	Cloud,
 	HardDrive,
 	FileArchive,
 	Monitor,
@@ -19,68 +15,7 @@ import {
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { LycanBox } from "@/components/ui/lycan-box";
-
-const downloadLinks = [
-	{
-		name: "Google Drive",
-		icon: <CloudDownload className="h-8 w-8" />,
-		url: "#",
-		size: "2.8 GB",
-		speed: "Fast",
-	},
-	{
-		name: "Mega.NZ",
-		icon: <CloudDownload className="h-8 w-8" />,
-		url: "#",
-		size: "2.8 GB",
-		speed: "Fast",
-	},
-	{
-		name: "MediaFire",
-		icon: <CloudDownload className="h-8 w-8" />,
-		url: "#",
-		size: "2.8 GB",
-		speed: "Medium",
-	},
-	{
-		name: "Direct Link",
-		icon: <CloudDownload className="h-8 w-8" />,
-		url: "#",
-		size: "2.8 GB",
-		speed: "Variable",
-	},
-];
-
-const installationSteps = [
-	"Download the game client from any of the links above.",
-	"Extract the files using WinRAR or 7-Zip to your desired location.",
-	"Run the Lycan.exe file to start the game.",
-	"Create an account or login with your existing credentials.",
-	"Enjoy your adventure in Lycan Online!",
-];
-
-const usefulTools = [
-	{
-		name: "DirectX 9.0c",
-		description: "Required runtime for the game",
-		url: "https://www.microsoft.com/en-us/download/details.aspx?id=35",
-	},
-	{
-		name: "Visual C++ Redistributable",
-		description: "Required for game compatibility",
-		url: "https://aka.ms/vs/17/release/vc_redist.x64.exe",
-	},
-	{
-		name: ".NET Framework 4.8",
-		description: "Required for launcher and tools",
-		url: "https://dotnet.microsoft.com/download/dotnet-framework/net48",
-	},
-	{
-		name: "WinRAR / 7-Zip",
-		description: "Extract compressed game files",
-		url: "https://www.7-zip.org/download.html",
-	},
-];
+import { PUBLIC_CONFIG } from "@/lib/public-config";
 
 const systemRequirements = {
 	headers: ["Component", "Minimum", "Recommended"],
@@ -124,33 +59,39 @@ const systemRequirements = {
 	],
 };
 
-interface DownloadsData {
-	links?: Array<{
-		name: string;
-		url: string;
-		size: string;
-	}>;
-	installationSteps?: string[];
-	usefulTools?: Array<{
-		name: string;
-		description: string;
-		url: string;
-	}>;
-}
+const installationSteps = [
+	"Download the latest release from one of the links above.",
+	"Extract the downloaded archive to a location of your choice.",
+	"Run the installer and follow the on-screen instructions.",
+	"Once installation is complete, launch the application and enjoy!",
+];
+
+const usefulTools = [
+	{
+		name: "DirectX 9.0c",
+		description: "Required runtime for the game",
+		url: "https://www.microsoft.com/en-us/download/details.aspx?id=35",
+	},
+	{
+		name: ".NET Framework 4.8",
+		description: "Required for launcher and tools",
+		url: "https://dotnet.microsoft.com/download/dotnet-framework/net48",
+	},
+	{
+		name: "Visual C++ Redistributable",
+		description: "Required runtime for the game",
+		url: "https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads",
+	},
+	{
+		name: "7-Zip",
+		description: "Recommended tool for extracting the downloaded archive",
+		url: "https://www.7-zip.org/",
+	},
+];
 
 export default function DownloadPage() {
-	const [downloads, setDownloads] = useState<DownloadsData>({});
+	const links = PUBLIC_CONFIG.downloadLinks;
 
-	useEffect(() => {
-		fetch("/downloads.json")
-			.then((res) => res.json())
-			.then((data) => setDownloads(data));
-	}, []);
-
-	const { links, installationSteps, usefulTools } = downloads;
-
-	//console.log("Length links: ", links?.length)
-	//console.log("Links: ", links)
 	return (
 		<div className="flex min-h-screen flex-col relative">
 			{/* Background Image with Overlay */}
@@ -185,7 +126,7 @@ export default function DownloadPage() {
 					{/* Download Links */}
 					<section className="container mx-auto px-4 pb-12">
 						<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-							{links && links.length > 0 ? (
+							{links.length > 0 ? (
 								links.map((link, index) => (
 									<a
 										key={index}
@@ -245,7 +186,21 @@ export default function DownloadPage() {
 									title="Installation Instructions"
 									icon={<FileArchive className="h-4 w-4" />}
 								>
-									<ol className="space-y-4"></ol>
+									<ol className="space-y-4">
+										{installationSteps.map(
+											(step, index) => (
+												<li
+													key={step}
+													className="flex gap-3 text-sm text-[var(--muted-foreground)]"
+												>
+													<span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--lycan-gold)]/15 font-semibold text-[var(--lycan-gold)]">
+														{index + 1}
+													</span>
+													<span>{step}</span>
+												</li>
+											),
+										)}
+									</ol>
 
 									<div className="mt-6 rounded-lg border border-[var(--lycan-gold)]/30 bg-[var(--lycan-gold)]/5 p-4">
 										<p className="text-sm text-[var(--muted-foreground)]">
@@ -334,10 +289,13 @@ export default function DownloadPage() {
 									</p>
 									<div className="flex flex-col gap-2">
 										<a
-											href={process.env.NEXT_PUBLIC_DISCORD_LINK}
+											href={
+												PUBLIC_CONFIG.socials
+													.discordLink
+											}
 											className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-[#5865F2] py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#5865F2]/90"
-                      target="_blank"
-                    >
+											target="_blank"
+										>
 											<svg
 												className="h-5 w-5"
 												fill="currentColor"
@@ -348,10 +306,13 @@ export default function DownloadPage() {
 											Discord Support
 										</a>
 										<a
-											href={process.env.NEXT_PUBLIC_WHATSAPP_LINK}
+											href={
+												PUBLIC_CONFIG.socials
+													.whatsappLink
+											}
 											className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-[#25D366] py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#25D366]/90"
-                      target="_blank"
-                    >
+											target="_blank"
+										>
 											<svg
 												className="h-5 w-5"
 												fill="currentColor"
@@ -370,8 +331,7 @@ export default function DownloadPage() {
 									icon={<Wrench className="h-4 w-4" />}
 								>
 									<div className="space-y-3">
-										{usefulTools &&
-										usefulTools.length > 0 ? (
+										{usefulTools.length > 0 ? (
 											usefulTools.map((tool) => (
 												<a
 													key={tool.name}

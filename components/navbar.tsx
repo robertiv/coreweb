@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import checkSession from "@/lib/checkSession";
 import deleteSession from "@/lib/deleteSession";
 import { useRouter } from "next/navigation";
+import { AUTH_STATE_CHANGED_EVENT, notifyAuthStateChanged } from "@/lib/auth-events";
 
 const navLinks = [
 	{ href: "/", label: "Home" },
@@ -31,7 +32,11 @@ export function Navbar() {
 		// Redirigir a la página de inicio después del logout
 		if(result.success) {
 			setHasToken(false);
-			router.push("/");
+			notifyAuthStateChanged(false);
+			router.refresh();
+			if (pathname !== "/") {
+				router.push("/");
+			}
 		}
 	}
 
@@ -45,11 +50,27 @@ export function Navbar() {
 	}, []);
 
 	useEffect(() => {
-		const checkSessionStatus = async () => {
-			const result = await checkSession();
-			setHasToken(result);
+		const syncSessionStatus = () => {
+			setHasToken(checkSession());
 		};
-		checkSessionStatus();
+
+		const handleAuthStateChanged = (event: Event) => {
+			const authEvent = event as CustomEvent<{ authenticated?: boolean }>;
+			setHasToken(Boolean(authEvent.detail?.authenticated));
+		};
+
+		syncSessionStatus();
+		window.addEventListener(
+			AUTH_STATE_CHANGED_EVENT,
+			handleAuthStateChanged,
+		);
+
+		return () => {
+			window.removeEventListener(
+				AUTH_STATE_CHANGED_EVENT,
+				handleAuthStateChanged,
+			);
+		};
 	}, []);
 
 	return (

@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { Wifi, WifiOff, Users, Clock, Server } from "lucide-react";
 import { LycanBox } from "@/components/ui/lycan-box";
+import { getServerStatusAction } from "@/app/actions/server-status";
 
 export function ServerStatus() {
   const [serverTime, setServerTime] = useState<string>("");
-  const [isOnline] = useState(true);
-  const [playersOnline] = useState(1247);
+  const [isOnline, setIsOnline] = useState(false);
+  const [playersOnline, setPlayersOnline] = useState(0);
 
   useEffect(() => {
     const updateTime = () => {
@@ -25,6 +26,29 @@ export function ServerStatus() {
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadServerStatus = async () => {
+      const status = await getServerStatusAction();
+
+      if (cancelled) {
+        return;
+      }
+
+      setPlayersOnline(status.playersOnline);
+      setIsOnline(status.isOnline);
+    };
+
+    loadServerStatus();
+    const interval = setInterval(loadServerStatus, 30_000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, []);
 
   return (

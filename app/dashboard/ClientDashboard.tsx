@@ -1,14 +1,20 @@
 "use client";
 
-import { updateEmail } from "@/lib/updateEmail";
-import { updatePassword } from "@/lib/updatePassword";
-import { useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/navbar";
 import { LycanBox } from "@/components/ui/lycan-box";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import deleteSession from "@/lib/deleteSession";
+import { notifyAuthStateChanged } from "@/lib/auth-events";
+import {
+	sendVerificationEmailAction,
+	updateEmailAction,
+	updatePasswordAction,
+} from "./actions";
 import {
 	User,
 	Mail,
@@ -25,9 +31,17 @@ import {
 	AlertCircle,
 	AlertTriangle,
 } from "lucide-react";
-import { set } from "date-fns";
-import FormData from "form-data";
-import Mailgun from "mailgun.js";
+
+type DashboardActionState = {
+	error: string;
+	success: string;
+	updatedEmail?: string;
+};
+
+const initialActionState: DashboardActionState = {
+	error: "",
+	success: "",
+};
 
 export default function ClientDashboard({
 	user,
@@ -44,122 +58,46 @@ export default function ClientDashboard({
 		LastLogin: string;
 	};
 }) {
+	const router = useRouter();
 	const [activeSection, setActiveSection] = useState("info");
 	const [email, setEmail] = useState(user.Email);
-	const [isEmailVerified, setIsEmailVerified] = useState(false);
-	const [isSendingVerification, setIsSendingVerification] = useState(false);
-	const [error, setError] = useState("");
-	const [success, setSuccess] = useState("");
-	const [currentPassword, setCurrentPassword] = useState("");
-	const [newPassword, setNewPassword] = useState("");
-	const [confirmNewPassword, setConfirmNewPassword] = useState("");
-	const [passwordError, setPasswordError] = useState("");
-	const [passwordSuccess, setPasswordSuccess] = useState("");
+	const [logoutError, setLogoutError] = useState("");
+	const [isLogoutPending, setIsLogoutPending] = useState(false);
+	const [isEmailVerified] = useState(user.CertificateNum > 0);
+	const [emailState, emailFormAction, isEmailPending] = useActionState(
+		updateEmailAction,
+		initialActionState,
+	);
+	const [passwordState, passwordFormAction, isPasswordPending] = useActionState(
+		updatePasswordAction,
+		initialActionState,
+	);
+	const [verificationState, verificationFormAction, isVerificationPending] =
+		useActionState(sendVerificationEmailAction, initialActionState);
 
-	if (!isEmailVerified && user.CertificateNum > 0) {
-		setIsEmailVerified(true);
-	}
-
-	const sendEmail = async () => {
-		await fetch("/api/send-email", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				to: "victormiguel92@gmail.com",
-				subject: "Prueba desde Next.js",
-				message: "Hola Victor 🚀",
-			}),
-		});
-	};
-
-	const handleSendVerification = async () => {
-		setIsSendingVerification(true);
-		// Simulate sending verification email
-
-		const mailgun = new Mailgun(FormData);
-		const mg = mailgun.client({
-			username: "api",
-			key: process.env.MAILGUN_API_KEY || "API_KEY",
-			// When you have an EU-domain, you must specify the endpoint:
-			// url: "https://api.eu.mailgun.net"
-		});
-		
-		try {
-			const data = await mg.messages.create(
-				process.env.MAILGUN_DOMAIN || "sandbox6d7b8f829e8b4b0986860bc884f0fdbe.mailgun.org",
-				{
-					from: "Mailgun Sandbox <postmaster@sandbox6d7b8f829e8b4b0986860bc884f0fdbe.mailgun.org>",
-					to: ["VICTOR MIGUEL ROBERTI <victormiguel92@gmail.com>"],
-					subject: "Hello VICTOR MIGUEL ROBERTI",
-					text: "Congratulations VICTOR MIGUEL ROBERTI, you just sent an email with Mailgun! You are truly awesome!",
-				},
-			);
-
-			console.log(data); // logs response data
-		} catch (error) {
-			console.log(error); //logs any error
+	useEffect(() => {
+		if (emailState.updatedEmail) {
+			setEmail(emailState.updatedEmail);
 		}
+	}, [emailState.updatedEmail]);
 
-		setTimeout(() => {
-			setIsSendingVerification(false);
-			// Show success message
-		}, 2000);
-	};
+	const handleLogoutNow = async () => {
+		setLogoutError("");
+		setIsLogoutPending(true);
 
-	const handleUpdateEmail = async (e: React.FormEvent) => {
-		e.preventDefault();
-		//console.log("Updating email to:", email);
+		const result = await deleteSession();
 
-		setError("");
-		setSuccess("");
-
-		const updateResult = await updateEmail({
-			newEmail: email,
-		});
-
-		//console.log("Login result:", loginResult);
-		if (updateResult.error) {
-			setError(updateResult.error);
+		if (result?.success) {
+			notifyAuthStateChanged(false);
+			router.refresh();
+			router.push("/");
 			return;
 		}
 
-		if (updateResult.success) {
-			setSuccess("Email updated successfully!");
-		}
-	};
-
-	const handleChangePassword = async (e: React.FormEvent) => {
-		e.preventDefault();
-		setPasswordError("");
-		setPasswordSuccess("");
-
-		console.log("Change password clicked");
-		// Implement password change logic here
-
-		if (!currentPassword || !newPassword || !confirmNewPassword) {
-			setPasswordError("Please fill in all password fields.");
-			return;
-		}
-
-		if (newPassword !== confirmNewPassword) {
-			setPasswordError("New password and confirmation do not match.");
-			return;
-		}
-
-		const newPasswordResult = await updatePassword({
-			newPassword: newPassword,
-			currentPassword: currentPassword,
-		});
-
-		//console.log("Login result:", loginResult);
-		if (newPasswordResult.error) {
-			setPasswordError(newPasswordResult.error);
-			return;
-		}
-
-		if (newPasswordResult.success) {
-			setPasswordSuccess("Password updated successfully!");
-		}
+		setLogoutError(
+			result?.message || "Unable to logout right now. Please try again.",
+		);
+		setIsLogoutPending(false);
 	};
 
 	const menuItems = [
@@ -387,35 +325,42 @@ export default function ClientDashboard({
 												</h3>
 
 												<div>
-													{error && (
+													{emailState.error && (
 														<>
 															<h4 className="font-semibold text-red-500">
 																Error:
 															</h4>
 															<p className="text-sm text-[var(--muted-foreground)] mt-1">
-																{error}
+																{emailState.error}
 															</p>
 														</>
 													)}
-													{success && (
+													{emailState.success && (
 														<>
 															<h4 className="font-semibold text-green-500">
 																Success:
 															</h4>
 															<p className="text-sm text-[var(--muted-foreground)] mt-1">
-																{success}
+																{emailState.success}
 															</p>
 														</>
 													)}
+													{verificationState.error && (
+														<p className="text-sm text-red-400 mt-2">{verificationState.error}</p>
+													)}
+													{verificationState.success && (
+														<p className="text-sm text-green-400 mt-2">{verificationState.success}</p>
+													)}
 												</div>
 
-												<div className="space-y-2">
+												<form action={emailFormAction} className="space-y-2">
 													<Label htmlFor="email">
 														Email Address
 													</Label>
 													<div className="flex gap-2">
 														<Input
 															id="email"
+															name="newEmail"
 															type="email"
 															value={email}
 															onChange={(e) =>
@@ -427,17 +372,14 @@ export default function ClientDashboard({
 															className="flex-1"
 														/>
 														<Button
-															onClick={(e) =>
-																handleUpdateEmail(
-																	e,
-																)
-															}
+															type="submit"
+															disabled={isEmailPending}
 															className="bg-[var(--lycan-gold)] hover:bg-[var(--lycan-gold-light)] text-black"
 														>
-															Update
+															{isEmailPending ? "Updating..." : "Update"}
 														</Button>
 													</div>
-												</div>
+												</form>
 
 												<div className="flex items-center justify-between p-4 rounded-lg bg-[var(--lycan-card)]/50">
 													<div className="flex items-center gap-3">
@@ -454,26 +396,24 @@ export default function ClientDashboard({
 															</p>
 														</div>
 													</div>
+												<form action={verificationFormAction}>
+													<input type="hidden" name="email" value={email} />
+													<input
+														type="hidden"
+														name="username"
+														value={user.StrUserID}
+													/>
 													<Button
-														variant={
-															isEmailVerified
-																? "secondary"
-																: "default"
-														}
+														type="submit"
+														variant={isEmailVerified ? "secondary" : "default"}
 														className={
 															isEmailVerified
 																? ""
 																: "bg-[var(--lycan-gold)] hover:bg-[var(--lycan-gold-light)] text-black"
 														}
-														onClick={
-															handleSendVerification
-														}
-														disabled={
-															isSendingVerification ||
-															isEmailVerified
-														}
+														disabled={isVerificationPending || isEmailVerified}
 													>
-														{isSendingVerification ? (
+														{isVerificationPending ? (
 															<>
 																<Send className="h-4 w-4 mr-2 animate-spin" />
 																Sending...
@@ -486,11 +426,11 @@ export default function ClientDashboard({
 														) : (
 															<>
 																<Send className="h-4 w-4 mr-2" />
-																Send
-																Verification
+																Send Verification
 															</>
 														)}
 													</Button>
+												</form>
 												</div>
 											</div>
 										</div>
@@ -521,7 +461,7 @@ export default function ClientDashboard({
 													</div>
 												</div>
 											</div>
-											{passwordError && (
+											{passwordState.error && (
 												<div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
 													<div className="flex items-start gap-3">
 														<AlertTriangle className="h-5 w-5 text-red-500 mt-0.5" />
@@ -530,13 +470,13 @@ export default function ClientDashboard({
 																Error:
 															</h4>
 															<p className="text-sm text-[var(--muted-foreground)] mt-1">
-																{passwordError}
+																{passwordState.error}
 															</p>
 														</div>
 													</div>
 												</div>
 											)}
-											{passwordSuccess && (
+											{passwordState.success && (
 												<div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
 													<div className="flex items-start gap-3">
 														<CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
@@ -545,28 +485,22 @@ export default function ClientDashboard({
 																Success:
 															</h4>
 															<p className="text-sm text-[var(--muted-foreground)] mt-1">
-																{
-																	passwordSuccess
-																}
+																{passwordState.success}
 															</p>
 														</div>
 													</div>
 												</div>
 											)}
-											<div className="space-y-4">
+											<form action={passwordFormAction} className="space-y-4">
 												<div className="space-y-2">
 													<Label htmlFor="current-pass">
 														Current Password
 													</Label>
 													<Input
 														id="current-pass"
+														name="currentPassword"
 														type="password"
 														placeholder="Enter your current password"
-														onChange={(e) =>
-															setCurrentPassword(
-																e.target.value,
-															)
-														}
 													/>
 												</div>
 
@@ -576,13 +510,9 @@ export default function ClientDashboard({
 													</Label>
 													<Input
 														id="new-pass"
+														name="newPassword"
 														type="password"
 														placeholder="Enter your new password"
-														onChange={(e) =>
-															setNewPassword(
-																e.target.value,
-															)
-														}
 													/>
 												</div>
 
@@ -592,32 +522,25 @@ export default function ClientDashboard({
 													</Label>
 													<Input
 														id="confirm-new-pass"
+														name="confirmNewPassword"
 														type="password"
 														placeholder="Confirm your new password"
-														onChange={(e) =>
-															setConfirmNewPassword(
-																e.target.value,
-															)
-														}
 													/>
 												</div>
 
 												<div className="flex gap-3">
 													<Button
-														onClick={(e) =>
-															handleChangePassword(
-																e,
-															)
-														}
+														type="submit"
+														disabled={isPasswordPending}
 														className="bg-[var(--lycan-gold)] hover:bg-[var(--lycan-gold-light)] text-black"
 													>
-														Change Password
+														{isPasswordPending ? "Changing..." : "Change Password"}
 													</Button>
-													<Button variant="secondary">
+													<Button type="button" variant="secondary">
 														Cancel
 													</Button>
 												</div>
-											</div>
+											</form>
 										</div>
 									</LycanBox>
 								)}
@@ -655,12 +578,26 @@ export default function ClientDashboard({
 													authentication data.
 												</p>
 
+												{logoutError && (
+													<div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+														<p className="text-sm text-red-300">{logoutError}</p>
+													</div>
+												)}
+
 												<div className="flex gap-3">
-													<Button variant="destructive">
+													<Button
+														variant="destructive"
+														onClick={handleLogoutNow}
+														disabled={isLogoutPending}
+													>
 														<LogOut className="h-4 w-4 mr-2" />
-														Logout Now
+														{isLogoutPending ? "Logging out..." : "Logout Now"}
 													</Button>
-													<Button variant="secondary">
+													<Button
+														variant="secondary"
+														type="button"
+														onClick={() => setActiveSection("info")}
+													>
 														Cancel
 													</Button>
 												</div>

@@ -4,13 +4,14 @@ import { ServerStatus } from "@/components/sidebar/server-status";
 import { LoginBox } from "@/components/sidebar/login-box";
 import { FortressWar } from "@/components/sidebar/fortress-war";
 import { UniqueKills } from "@/components/sidebar/unique-kills";
-import { EventSchedule } from "@/components/sidebar/event-schedule";
+// import { EventSchedule } from "@/components/sidebar/event-schedule";
 import { DiscordWidget } from "@/components/sidebar/discord-widget";
 import { MediaCarousel } from "@/components/media-carousel";
 import { DiscordNews } from "@/components/discord-news";
 import { TopPlayers } from "@/components/top-players";
 import { TopGuilds } from "@/components/top-guilds";
 import { Footer } from "@/components/footer";
+import { PUBLIC_CONFIG } from "@/lib/public-config";
 
 export default function Home() {
   return (
@@ -36,8 +37,8 @@ export default function Home() {
             <aside className="space-y-6 lg:col-span-3">
               <LoginBox />                           
               <FortressWar />
-              <EventSchedule />
               <UniqueKills />              
+              {/* <EventSchedule /> */}
             </aside>
 
             {/* Main Content */}
@@ -65,7 +66,7 @@ export default function Home() {
             </h2>
             <p className="mb-8 text-lg text-[var(--muted-foreground)]">
               Download the game client and join thousands of players in the
-              world of Lycan Online.
+              world of {PUBLIC_CONFIG.serverName}.
             </p>
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <button
@@ -99,7 +100,7 @@ export default function Home() {
         <section className="py-16">
           <div className="mx-auto max-w-7xl px-4">
             <h2 className="font-serif mb-12 text-center text-3xl font-bold text-[var(--foreground)]">
-              Why Choose <span className="gradient-text">Lycan Online?</span>
+              Why Choose <span className="gradient-text">{PUBLIC_CONFIG.serverName}?</span>
             </h2>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
               {[

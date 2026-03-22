@@ -1,25 +1,43 @@
 "use client";
 
 import React from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useActionState, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Eye, EyeOff, User, Lock, Mail, ArrowLeft } from "lucide-react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
-import loginUser from "@/lib/loginUser";
+import {
+	loginAction,
+	registerAction,
+	type AccountActionState,
+} from "./actions";
 
 export default function AccountPage() {
+	const initialActionState: AccountActionState = {
+		error: "",
+		success: "",
+	};
+
 	const [mode, setMode] = useState<"login" | "register">("login");
 	const [showPassword, setShowPassword] = useState(false);
 	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-	const [error, setError] = useState("");
-	const [success, setSuccess] = useState("");
-	const router = useRouter();
+	const [loginState, loginFormAction] = useActionState(
+		loginAction,
+		initialActionState,
+	);
+	const [registerState, registerFormAction] = useActionState(
+		registerAction,
+		initialActionState,
+	);
 	const searchParams = useSearchParams();
 	const urlerror = searchParams.get("error");
 	const modtype = searchParams.get("mod");
+	const from = searchParams.get("from") ?? "";
+	const actionError = mode === "login" ? loginState.error : registerState.error;
+	const actionSuccess =
+		mode === "login" ? loginState.success : registerState.success;
 	const [formData, setFormData] = useState({
 		username: "",
 		email: "",
@@ -27,99 +45,18 @@ export default function AccountPage() {
 		confirmPassword: "",
 	});
 
-	if(modtype === "register" && mode !== "register") {
-		setMode("register");
-	}
-	if(modtype === "login" && mode !== "login") {
-		setMode("login");
-	}
-	//urlerror === "not_authorized" && setError("You must be logged in to access that page.");
-	//urlerror === "session_expired" && setError("Your session has expired. Please log in again.");
+	useEffect(() => {
+		if (modtype === "register") {
+			setMode("register");
+		}
+		if (modtype === "login") {
+			setMode("login");
+		}
+	}, [modtype]);
 
 	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const { name, value } = e.target;
 		setFormData((prev) => ({ ...prev, [name]: value }));
-	};
-
-	const handleLoginSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		// Handle form submission
-
-		// where is the user coming from
-		const from = searchParams.get("from");
-
-		setError(""); //restart state.
-		setSuccess("");
-
-		const loginResult = await loginUser({
-			userId: formData.username,
-			password: formData.password,
-		});
-
-		//console.log("Login result:", loginResult);
-		if(loginResult.error) {
-			setError(loginResult.error);
-			return;
-		}
-
-		if(loginResult.success) {
-			router.push(from || "/dashboard");
-		}		
-	};
-
-	const handleRegisterSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		setError(""); //restart state.
-		setSuccess("");
-
-		// //// TERMINAR EL CODIGO DEL REGISTER
-		// /// DE AQUI PA ABAJO
-
-		try {
-			const res = await fetch("/api/register", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				credentials: "include", // 🔥 importante para cookies
-				body: JSON.stringify({
-					userId: formData.username,
-					password: formData.password,
-					email: formData.email,
-					confirmPassword: formData.confirmPassword,					
-				}),
-			});
-
-			// 	// console.log(
-			// 	// 	"Form submitted:",
-			// 	// 	formData.username,
-			// 	// 	formData.password,
-			// 	// );
-			// 	// TERMINAR EL CODIGO DEL LOGIN (REVISAR COMO FUNCIONAN LOS OTROS LLAMADOS A LA API)
-			// 	// COMO POR EJEMPLO LA PAGINA DE CHARS/[NAME] QUE HACE LLAMADO DESDE EL FRONT.
-			const data = await res.json();
-
-			if (!res.ok) {
-				setError(
-					data.error ||
-						"An error ocurred when creating your account. Please try again and if the error continues, please report to admin.",
-				);
-				return;
-			}
-
-			// 	// Si registro es exitoso
-			if (data.success) {
-				setSuccess(
-					"Your account has been created succesfully! You can login now in your dashboard and ingame.",
-				);
-			}
-			// 	//router.push("/login");
-		} catch (err) {
-			setError(
-				String(err) ||
-					"An error ocurred when creating your account. Please try again and if the error continues, please report to admin.",
-			);
-		}
 	};
 
 	return (
@@ -225,22 +162,25 @@ export default function AccountPage() {
 
 						{/* Form */}
 						<form
-							onSubmit={
+							action={
 								mode === "login"
-									? handleLoginSubmit
-									: handleRegisterSubmit
+									? loginFormAction
+									: registerFormAction
 							}
 							className="space-y-5"
 						>
+							{mode === "login" && (
+								<input type="hidden" name="from" value={from} />
+							)}
 							{/* Username */}
 							<div>
-								{(error || urlerror) && (
+								{(actionError || urlerror) && (
 									<div className="my-6 rounded-lg border border-[var(--lycan-gold)]/30 bg-[var(--lycan-gold)]/5 p-4">
 										<p className="text-sm text-[var(--muted-foreground)]">
 											<span className="font-semibold text-[#a80000]">
 												Error:
 											</span>{" "}
-											{error ||
+											{actionError ||
 												(urlerror === "not_authorized"
 													? "You must be logged in to access that page."
 													: urlerror ===
@@ -250,13 +190,13 @@ export default function AccountPage() {
 										</p>
 									</div>
 								)}
-								{success && (
+								{actionSuccess && (
 									<div className="my-6 rounded-lg border border-[var(--lycan-gold)]/30 bg-[var(--lycan-gold)]/5 p-4">
 										<p className="text-sm text-[#00a865]">
 											<span className="font-bold text-[var(--lycan-gold)]">
 												Success:
 											</span>{" "}
-											{success}
+											{actionSuccess}
 										</p>
 									</div>
 								)}

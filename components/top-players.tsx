@@ -1,24 +1,18 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Trophy, Crown, Medal, Award } from "lucide-react";
-import Image from 'next/image';
+import Image from "next/image";
+import Link from "next/link";
 import { LycanBox } from "@/components/ui/lycan-box";
+import {
+  getTopPlayersAction,
+  type TopPlayerData,
+} from "@/app/actions/top-players";
 
-interface Player {
-  rank: number;
-  name: string;
-  level: number;
-  guild: string;
-  race: "chinese" | "european";
+function getRaceFromRefCharId(refCharId: number): "chinese" | "european" {
+  return refCharId > 2000 ? "european" : "chinese";
 }
-
-const topPlayers: Player[] = [
-  { rank: 1, name: "DragonMaster", level: 1910, guild: "Legends", race: "chinese" },
-  { rank: 2, name: "ShadowBlade", level: 1810, guild: "DarkForce", race: "european" },
-  { rank: 3, name: "PhoenixRise", level: 1709, guild: "Phoenix", race: "chinese" },
-  { rank: 4, name: "NightHunter", level: 1609, guild: "Wolves", race: "european" },
-  { rank: 5, name: "StormBreaker", level: 1508, guild: "Storm", race: "chinese" },
-];
 
 function getRankIcon(rank: number) {
   switch (rank) {
@@ -47,6 +41,30 @@ function getRankBg(rank: number) {
 }
 
 export function TopPlayers() {
+  const [topPlayers, setTopPlayers] = useState<TopPlayerData[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTopPlayers = async () => {
+      const data = await getTopPlayersAction();
+
+      if (cancelled) {
+        return;
+      }
+
+      setTopPlayers(data);
+    };
+
+    loadTopPlayers();
+    const interval = setInterval(loadTopPlayers, 30_000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
   return (
     <LycanBox title="Top Players" icon={<Trophy className="h-4 w-4" />} contentClassName="p-0">
     
@@ -55,8 +73,9 @@ export function TopPlayers() {
       {/* Content */}
       <div className="divide-y divide-[var(--border)]">
         {topPlayers.map((player) => (
-          <div
+          <Link
             key={player.name}
+            href={`/chars/${player.name}`}
             className={`flex items-center gap-3 p-3 transition-colors hover:bg-[var(--lycan-card-hover)] ${getRankBg(player.rank)}`}
           >
             {/* Rank */}
@@ -69,16 +88,15 @@ export function TopPlayers() {
               <div className="flex items-center gap-2">
                 <span>
                   <Image
-                    src={`/images/${player.race}.png`} // Ruta desde la carpeta public
-                    alt={player.race}
-                    width={30} // Ancho en píxeles
-                    height={30} // Alto en píxeles
+                    src={`/images/${getRaceFromRefCharId(player.refCharId)}.png`}
+                    alt={getRaceFromRefCharId(player.refCharId)}
+                    width={30}
+                    height={30}
                   />
                 </span>
                 <span className="text-sm font-semibold text-[var(--foreground)] truncate">
                   {player.name}
                 </span>
-                
               </div>
               <p className="text-xs text-[var(--muted-foreground)]">
                 <span className="text-[var(--lycan-white)] font-serif font-semibold">
@@ -90,14 +108,20 @@ export function TopPlayers() {
               </p>
             </div>
 
-            {/* Level */}
+            {/* Points */}
             <div className="text-right">
               <p className="text-sm font-bold text-[var(--lycan-gold)]">
-                P: {player.level}
+                P: {player.points.toLocaleString()}
               </p>
             </div>
-          </div>
+          </Link>
         ))}
+
+        {topPlayers.length === 0 ? (
+          <div className="p-3 text-sm text-[var(--muted-foreground)]">
+            No players found.
+          </div>
+        ) : null}
       </div>
 
       {/* View All */}

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
+import { PUBLIC_CONFIG } from "@/lib/public-config";
 
 const leftMenuLinks = [
   { label: "Download", href: "/downloads" },
@@ -10,19 +11,19 @@ const leftMenuLinks = [
   { label: "Rankings", href: "/rankings" },
   { label: "News", href: "/" },
   { label: "FAQ", href: "/faq" },
-  { label: "Support Ticket", href: "/contact-us" },
+  { label: "Support Ticket", href: PUBLIC_CONFIG.socials.discordLink },
   { label: "Server Rules", href: "/rules" },
-  { label: "Contact Us", href: "/contact-us" },
+  { label: "Contact Us", href: PUBLIC_CONFIG.socials.discordLink },
 ];
 
 const rightMenuLinks = [
-  { label: "Discord", href: "https://discord.gg/lycan", external: true },
-  { label: "Facebook", href: "https://facebook.com/lycan", external: true },
-  { label: "YouTube", href: "https://youtube.com/lycan", external: true },
+  { label: "Discord", href: PUBLIC_CONFIG.socials.discordLink, external: true },
+  { label: "Facebook", href: PUBLIC_CONFIG.socials.facebookLink, external: true },
+  { label: "YouTube", href: PUBLIC_CONFIG.socials.youtubeLink, external: true },
   { label: "Forums", href: "#forums" },
   { label: "Terms of Service", href: "/tos" },
-  { label: "Privacy Policy", href: "/tos" },
-  { label: "Refund Policy", href: "/tos" },
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Refund Policy", href: "/refund" },
 ];
 
 const partnerLinks = [
@@ -123,7 +124,7 @@ export function Footer() {
         {/* Bottom Bar - Copyright */}
         <div className="mt-10 border-t border-[var(--border)] pt-6">
           <p className="text-center text-sm text-[var(--lycan-gold)]">
-             {new Date().getFullYear()} Copyright &copy; LycanSRO. All rights reserved. Design and coded by <a className="text-[var(--muted-foreground)] hover:text-[var(--lycan-gold-light)]" href="https://discord.com/users/379045987676717058">vroberti</a>.
+             {new Date().getFullYear()} Copyright &copy; {PUBLIC_CONFIG.serverName}. All rights reserved. Design and coded by <a className="text-[var(--muted-foreground)] hover:text-[var(--lycan-gold-light)]" href="https://discord.com/users/379045987676717058">vroberti</a>.
           </p>          
         </div>        
       </div>

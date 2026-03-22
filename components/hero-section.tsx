@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Image from "next/image";
+import { PUBLIC_CONFIG } from "@/lib/public-config";
 
 export function HeroSection() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -47,7 +48,7 @@ export function HeroSection() {
         <div className="mb-8 animate-fade-in">
           <Image
             src="/images/logo.png"
-            alt="Lycan Online"
+            alt={PUBLIC_CONFIG.serverName + " Logo"}
             width={400}
             height={300}
             className="drop-shadow-2xl"
