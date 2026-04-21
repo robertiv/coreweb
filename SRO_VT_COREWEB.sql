@@ -85,6 +85,31 @@ CREATE TABLE [dbo].[_HonorRank](
 	[Points] [int] NULL
 ) ON [PRIMARY]
 GO
+/****** Object:  Table [dbo].[_ItemNames]    Script Date: 4/21/2026 12:40:56 AM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[_ItemNames](
+	[CodeName128] [varchar](max) NULL,
+	[TextString] [varchar](max) NULL
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[_RefMagicOptNew]    Script Date: 4/21/2026 12:41:12 AM ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[_RefMagicOptNew](
+	[ID] [int] IDENTITY(1,1) NOT NULL,
+	[MOptName128] [varchar](max) NULL,
+	[RealName] [varchar](max) NULL
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
 /****** Object:  Table [dbo].[_JobKillsLog]    Script Date: 22/03/2026 20:41:36 ******/
 SET ANSI_NULLS ON
 GO
@@ -393,19 +418,19 @@ JOIN SRO_VT_SHARD.dbo._Items as items0 on invent0.ItemID = items0.ID64 AND ((inv
 JOIN SRO_VT_SHARD.dbo._RefObjCommon as ref0 on items0.RefItemID = ref0.ID
 JOIN SRO_VT_SHARD.dbo._Char as chart on invent0.CharID = chart.CharID
 LEFT JOIN SRO_VT_SHARD.dbo._BindingOptionWithItem as bind on items0.ID64 = bind.nItemDBID AND bind.bOptType = 2
-LEFT JOIN SRO_VT_SYSTEMS.dbo._ItemNames as es on ref0.NameStrID128 = es.CodeName128
-LEFT JOIN SRO_VT_SYSTEMS.dbo._RefMagicOptNew as magic1 on (items0.MagParam1 & 2147483647) = magic1.ID
-LEFT JOIN SRO_VT_SYSTEMS.dbo._RefMagicOptNew as magic2 on (items0.MagParam2 & 2147483647) = magic2.ID
-LEFT JOIN SRO_VT_SYSTEMS.dbo._RefMagicOptNew as magic3 on (items0.MagParam3 & 2147483647) = magic3.ID
-LEFT JOIN SRO_VT_SYSTEMS.dbo._RefMagicOptNew as magic4 on (items0.MagParam4 & 2147483647) = magic4.ID
-LEFT JOIN SRO_VT_SYSTEMS.dbo._RefMagicOptNew as magic5 on (items0.MagParam5 & 2147483647) = magic5.ID
-LEFT JOIN SRO_VT_SYSTEMS.dbo._RefMagicOptNew as magic6 on (items0.MagParam6 & 2147483647) = magic6.ID
-LEFT JOIN SRO_VT_SYSTEMS.dbo._RefMagicOptNew as magic7 on (items0.MagParam7 & 2147483647) = magic7.ID
-LEFT JOIN SRO_VT_SYSTEMS.dbo._RefMagicOptNew as magic8 on (items0.MagParam8 & 2147483647) = magic8.ID
-LEFT JOIN SRO_VT_SYSTEMS.dbo._RefMagicOptNew as magic9 on (items0.MagParam9 & 2147483647) = magic9.ID
-LEFT JOIN SRO_VT_SYSTEMS.dbo._RefMagicOptNew as magic10 on (items0.MagParam10 & 2147483647) = magic10.ID
-LEFT JOIN SRO_VT_SYSTEMS.dbo._RefMagicOptNew as magic11 on (items0.MagParam11 & 2147483647) = magic11.ID
-LEFT JOIN SRO_VT_SYSTEMS.dbo._RefMagicOptNew as magic12 on (items0.MagParam12 & 2147483647) = magic12.ID
+LEFT JOIN SRO_VT_COREWEB.dbo._ItemNames as es on ref0.NameStrID128 = es.CodeName128
+LEFT JOIN SRO_VT_COREWEB.dbo._RefMagicOptNew as magic1 on (items0.MagParam1 & 2147483647) = magic1.ID
+LEFT JOIN SRO_VT_COREWEB.dbo._RefMagicOptNew as magic2 on (items0.MagParam2 & 2147483647) = magic2.ID
+LEFT JOIN SRO_VT_COREWEB.dbo._RefMagicOptNew as magic3 on (items0.MagParam3 & 2147483647) = magic3.ID
+LEFT JOIN SRO_VT_COREWEB.dbo._RefMagicOptNew as magic4 on (items0.MagParam4 & 2147483647) = magic4.ID
+LEFT JOIN SRO_VT_COREWEB.dbo._RefMagicOptNew as magic5 on (items0.MagParam5 & 2147483647) = magic5.ID
+LEFT JOIN SRO_VT_COREWEB.dbo._RefMagicOptNew as magic6 on (items0.MagParam6 & 2147483647) = magic6.ID
+LEFT JOIN SRO_VT_COREWEB.dbo._RefMagicOptNew as magic7 on (items0.MagParam7 & 2147483647) = magic7.ID
+LEFT JOIN SRO_VT_COREWEB.dbo._RefMagicOptNew as magic8 on (items0.MagParam8 & 2147483647) = magic8.ID
+LEFT JOIN SRO_VT_COREWEB.dbo._RefMagicOptNew as magic9 on (items0.MagParam9 & 2147483647) = magic9.ID
+LEFT JOIN SRO_VT_COREWEB.dbo._RefMagicOptNew as magic10 on (items0.MagParam10 & 2147483647) = magic10.ID
+LEFT JOIN SRO_VT_COREWEB.dbo._RefMagicOptNew as magic11 on (items0.MagParam11 & 2147483647) = magic11.ID
+LEFT JOIN SRO_VT_COREWEB.dbo._RefMagicOptNew as magic12 on (items0.MagParam12 & 2147483647) = magic12.ID
 LEFT JOIN SRO_VT_SHARD.dbo._RefObjItem as refi on ref0.Link = refi.ID
 
 WHERE chart.CharName16 = @Charname

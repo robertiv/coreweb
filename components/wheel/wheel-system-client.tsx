@@ -112,7 +112,7 @@ export function WheelSystemClient({ items }: WheelSystemClientProps) {
                       })}
                     </div>
                     <img
-                      src="/images/logo.png"
+                      src="/images/logo.webp"
                       alt="Wheel logo"
                       width={122}
                       height={122}

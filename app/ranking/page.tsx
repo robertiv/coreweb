@@ -1,6 +1,7 @@
 import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
 import { LycanBox } from "@/components/ui/lycan-box";
+import { PUBLIC_CONFIG } from "@/lib/public-config";
 import {
 	getRankingByTab,
 	type RankingTab,
@@ -10,6 +11,7 @@ import {
 import { Brain, Clock, ShieldPlus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { env } from "process";
 import { ReactNode } from "react";
 
 type RankingColumn = {
@@ -276,7 +278,7 @@ export default async function RankingPage({ searchParams }: RankingPageProps) {
 					<section className="mx-auto max-w-7xl px-4 py-8">
 						<div className="flex flex-col items-center pb-8 text-center">
 							<h1 className="font-serif text-4xl font-bold text-[var(--foreground)] md:text-5xl">
-								Lycan Rankings
+								{PUBLIC_CONFIG.serverName} Rankings
 							</h1>
 							<p className="mt-4 max-w-2xl text-lg text-[var(--muted-foreground)]">
 								Check out highscores and players stats. Rank updates every {RANKING_CACHE_SECONDS / 60} minutes.

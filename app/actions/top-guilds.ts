@@ -22,7 +22,7 @@ export async function getTopGuildsAction(): Promise<TopGuildData[]> {
 			FROM [SRO_VT_SHARD].[dbo].[_Guild] g WITH(NOLOCK)
 			JOIN [SRO_VT_SHARD].[dbo].[_Char] a WITH(NOLOCK)
 				ON a.GuildID = g.ID
-			LEFT JOIN [SRO_VT_SYSTEMS].[dbo].[_SiegeWinner] w
+			LEFT JOIN [SRO_VT_COREWEB].[dbo].[_SiegeWinner] w
 				ON w.GuildID = g.ID
 			LEFT JOIN (
 				SELECT GuildID, COUNT(*) AS MemberCount

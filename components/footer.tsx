@@ -67,8 +67,8 @@ export function Footer() {
             {/* Logo */}
             <Link href="/" className="mb-6 inline-block">
               <Image
-                src="/images/logo.png"
-                alt="Lycan Online"
+                src="/images/logo.webp"
+                alt="Silkroad Online"
                 width={234}
                 height={156}
                 className="drop-shadow-[0_0_15px_rgba(212,168,75,0.3)]"
